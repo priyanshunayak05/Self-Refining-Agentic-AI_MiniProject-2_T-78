@@ -1,6 +1,7 @@
 ```markdown
 ## 📁 Backend (Node.js)
 ```
+```
 backend-node/
 ├── src/
 │   ├── agents/
@@ -31,8 +32,10 @@ backend-node/
 ├── tsconfig.json
 └── .env
 ```
+```
 
 ## 📁 Frontend (React)
+```
 ```
 frontend/
 ├── src/
@@ -61,8 +64,9 @@ frontend/
 ├── tailwind.config.js
 └── vite.config.ts
 ```
-
+```
 ## 📁 Shared
+```
 ```
 shared/
 └── types/
@@ -70,6 +74,3 @@ shared/
     └── node.types.ts
 ```
 
-README.md
-```
-```

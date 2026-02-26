@@ -2,11 +2,7 @@
 node_modules/
 
 # ignore frontend src folder
-Frontend/agentic-ai-frontend/src/
-
-# environment files
-.env
-Frontend/agentic-ai-frontend/.env
+src/
 
 # logs
 *.log

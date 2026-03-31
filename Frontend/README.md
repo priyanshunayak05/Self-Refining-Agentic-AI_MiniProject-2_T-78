@@ -87,7 +87,7 @@ The system simulates an **agentic reasoning pipeline** consisting of planner, ex
 
 ## 📁 Project Structure
 
-\`\`\`
+\`\`\`bash
 agentic-ai-frontend/
 │
 ├── public/

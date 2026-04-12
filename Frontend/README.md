@@ -1,11 +1,19 @@
 # 🚀 Agentic AI Frontend — T-78 Project
 
+![Agentic AI Frontend Screenshot](https://github.com/user-attachments/assets/a988bf66-9d78-428a-93dc-63d4333465cb)
+
 A **Cloud-Deployed Self-Refining Agentic AI Frontend** built using **React.js**, **React Flow**, and **TailwindCSS**.
 
 This project provides a visual workflow builder where users can design, execute, and monitor Agentic AI pipelines using drag-and-drop nodes.
 
 **Developer:** Priyanshu Nayak  
 **Program:** B.Tech CSE (AI & ML)
+
+---
+
+## 🌐 Live Demo
+
+🔗 **[https://self-refining-agentic-ai-miniproject-2-t.onrender.com/](https://self-refining-agentic-ai-miniproject-2-t.onrender.com/)**
 
 ---
 
@@ -33,12 +41,12 @@ The system simulates an **agentic reasoning pipeline** consisting of planner, ex
 - Configurable agent nodes
 
 ### ✅ Agent Nodes
-- **Input Node** — Accept goals
-- **Planner Node** — Task decomposition
-- **Executor Node** — Execute tasks
-- **Critic Node** — Evaluate output
-- **Memory Node** — Store context
-- **Output Node** — Generate results
+- **Input Node** — Accepts user goals
+- **Planner Node** — Decomposes tasks
+- **Executor Node** — Executes tasks
+- **Critic Node** — Evaluates output quality
+- **Memory Node** — Stores context
+- **Output Node** — Generates final results
 
 ### ✅ Execution Engine
 - Sequential workflow execution
@@ -62,51 +70,54 @@ The system simulates an **agentic reasoning pipeline** consisting of planner, ex
 
 ## 🏗️ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| React 18 | Frontend framework |
-| React Router | Routing |
-| React Flow | Workflow canvas |
-| Zustand | State management |
-| TailwindCSS | Styling |
-| React Query | Data fetching |
-| Axios | API communication |
-| Lucide React | Icons |
-| UUID | Unique identifiers |
-| Date-Fns | Date formatting |
+| Technology     | Purpose                |
+|----------------|------------------------|
+| React 18       | Frontend framework     |
+| React Router   | Client-side routing    |
+| React Flow     | Workflow canvas        |
+| Zustand        | State management       |
+| TailwindCSS    | Styling                |
+| React Query    | Data fetching          |
+| Axios          | API communication      |
+| Lucide React   | Icons                  |
+| UUID           | Unique identifiers     |
+| Date-Fns       | Date formatting        |
 
 ---
 
 ## 📁 Project Structure
+
+```bash
+agentic-ai-frontend/
 │
 ├── public/
 │
 ├── src/
-│ ├── components/
-│ │ ├── Layout/
-│ │ ├── Sidebar/
-│ │ ├── Header/
-│ │ ├── NodePalette/
-│ │ ├── WorkflowCanvas/
-│ │ └── ExecutionLog/
-│ │
-│ ├── pages/
-│ │ ├── WorkflowBuilder/
-│ │ ├── Dashboard/
-│ │ ├── MemoryViewer/
-│ │ ├── ExecutionHistory/
-│ │ └── Settings/
-│ │
-│ ├── store/
-│ │ └── workflowStore.js
-│ │
-│ ├── App.js
-│ └── index.js
+│   ├── components/
+│   │   ├── Layout/
+│   │   ├── Sidebar/
+│   │   ├── Header/
+│   │   ├── NodePalette/
+│   │   ├── WorkflowCanvas/
+│   │   └── ExecutionLog/
+│   │
+│   ├── pages/
+│   │   ├── WorkflowBuilder/
+│   │   ├── Dashboard/
+│   │   ├── MemoryViewer/
+│   │   ├── ExecutionHistory/
+│   │   └── Settings/
+│   │
+│   ├── store/
+│   │   └── workflowStore.js
+│   │
+│   ├── App.js
+│   └── index.js
 │
 ├── package.json
 ├── tailwind.config.js
 └── postcss.config.js
-
+```
 
 ---
 
@@ -117,85 +128,93 @@ The system simulates an **agentic reasoning pipeline** consisting of planner, ex
 ```bash
 git clone <your-repo-url>
 cd agentic-ai-frontend
-2️⃣ Install Dependencies
+```
+
+### 2️⃣ Install Dependencies
+
+```bash
 npm install
-3️⃣ Start Development Server
+```
+
+### 3️⃣ Start Development Server
+
+```bash
 npm start
+```
 
-Application runs at:
+Application runs at: **http://localhost:3000**
 
-http://localhost:3000
-🧪 Workflow Execution
+---
 
-Drag nodes from Node Palette
+## 🧪 Workflow Execution
 
-Drop nodes onto canvas
+1. Drag nodes from the **Node Palette**
+2. Drop nodes onto the **Canvas**
+3. Connect nodes in sequence
+4. Click **Execute**
+5. View real-time **Execution Logs**
 
-Connect nodes
-
-Click Execute
-
-View execution logs
-
-Execution flow:
-
+**Execution Flow:**
+```
 Input → Planner → Executor → Critic → Memory → Output
-💾 Local Storage
+```
 
-The application stores:
+---
 
-Workflow state
+## 💾 Local Storage
 
-User settings
+The application persists the following data in the browser's `localStorage`:
 
-inside browser localStorage.
+- Workflow state
+- User settings
 
-🔧 Configuration
+---
 
-Settings page allows configuration of:
+## 🔧 Configuration
 
-API Endpoint
+The **Settings** page allows configuration of:
 
-Execution timeout
+- API Endpoint
+- Execution timeout
+- Retry attempts
+- Logging preferences
 
-Retry attempts
+---
 
-Logging preferences
+## 🚀 Future Improvements
 
-🚀 Future Improvements
+- [ ] Backend AI integration
+- [ ] Real LLM execution
+- [ ] WebSocket streaming responses
+- [ ] Cloud workflow persistence
+- [ ] Authentication system
+- [ ] Multi-user collaboration
 
-Backend AI integration
+---
 
-Real LLM execution
+## 🧑‍💻 Developer
 
-WebSocket streaming responses
-
-Cloud workflow persistence
-
-Authentication system
-
-Multi-user collaboration
-
-🧑‍💻 Developer
-
-Priyanshu Nayak
+**Priyanshu Nayak**  
 B.Tech Computer Science (AI & ML)
 
-📄 License
+---
+
+## 📄 License
 
 This project is intended for academic and educational purposes.
 
-🤝 Contributing
+---
 
-Pull requests are welcome.
-For major changes, please open an issue first.
+## 🤝 Contributing
 
-⭐ Acknowledgements
+Pull requests are welcome.  
+For major changes, please open an issue first to discuss what you would like to change.
 
-React Flow
+---
 
-TailwindCSS
+## ⭐ Acknowledgements
 
-Open Source Community
-
-Agentic AI Research Concepts
+- [React Flow](https://reactflow.dev/)
+- [TailwindCSS](https://tailwindcss.com/)
+- Open Source Community
+- Agentic AI Research Concepts

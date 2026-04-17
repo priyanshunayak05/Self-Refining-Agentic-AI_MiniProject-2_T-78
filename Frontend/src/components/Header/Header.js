@@ -6,7 +6,9 @@ import toast from 'react-hot-toast';
 
 const Header = ({ onMenuClick }) => {
   const location = useLocation();
-  const { executeWorkflow, isExecuting, saveWorkflow } = useWorkflowStore();
+  const executeWorkflow = useWorkflowStore((s) => s.executeWorkflow);
+  const isExecuting     = useWorkflowStore((s) => s.isExecuting);
+  const saveWorkflow    = useWorkflowStore((s) => s.saveWorkflow);
 
   const handleExecute = async () => {
     try {

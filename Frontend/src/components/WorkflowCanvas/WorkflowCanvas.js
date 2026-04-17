@@ -135,11 +135,11 @@ const WorkflowCanvas = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
-  const {
-    setNodes: setStoreNodes,
-    setEdges: setStoreEdges,
-    lastResult,
-  } = useWorkflowStore();
+  // Use individual selectors so this component only re-renders when
+  // the selected slice changes — not on every store mutation.
+  const setStoreNodes = useWorkflowStore((s) => s.setNodes);
+  const setStoreEdges = useWorkflowStore((s) => s.setEdges);
+  const lastResult    = useWorkflowStore((s) => s.lastResult);
 
   // Show result panel when a new result comes in
   useEffect(() => {
@@ -147,10 +147,13 @@ const WorkflowCanvas = () => {
   }, [lastResult]);
 
   // Sync nodes/edges to store on every change
+  // NOTE: Zustand setters are stable references, so we intentionally omit them
+  // from the dependency array to avoid an infinite update loop.
   useEffect(() => {
     setStoreNodes(nodes);
     setStoreEdges(edges);
-  }, [nodes, edges, setStoreNodes, setStoreEdges]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges]);
 
   const onConnect = useCallback((params) => {
     setEdges(eds => addEdge({

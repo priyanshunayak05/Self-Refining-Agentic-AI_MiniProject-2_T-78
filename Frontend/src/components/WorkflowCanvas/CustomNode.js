@@ -1,8 +1,8 @@
 import React, { memo, useState, useCallback } from 'react';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useReactFlow } from 'reactflow';
 import {
   MessageSquare, Target, Zap, Search, Database, ArrowRight,
-  ChevronDown, ChevronUp, CheckCircle, Loader2
+  ChevronDown, ChevronUp, CheckCircle, Loader2, FileText
 } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
 
@@ -33,36 +33,108 @@ const descriptions = {
   output:   'Delivers the final refined output to the user.',
 };
 
+/** Extract code blocks and return segments for better rendering */
+function renderOutput(text) {
+  if (!text) return null;
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('```')) {
+      const lines = part.split('\n');
+      const lang = lines[0].replace('```', '').trim() || 'code';
+      const code = lines.slice(1, lines[lines.length - 1] === '```' ? -1 : undefined).join('\n');
+      return (
+        <div key={i} className="mt-1 mb-1">
+          <div className="flex items-center gap-2 bg-dark-900 px-2 py-0.5 rounded-t border border-dark-600 border-b-0">
+            <span className="text-xs text-emerald-400 font-mono font-semibold">{lang}</span>
+          </div>
+          <pre className="bg-[#0d1117] border border-dark-600 rounded-b px-3 py-2 text-xs text-green-300 font-mono overflow-x-auto whitespace-pre">
+            {code}
+          </pre>
+        </div>
+      );
+    }
+    return part ? (
+      <span key={i} className="text-xs text-gray-300 whitespace-pre-wrap">{part}</span>
+    ) : null;
+  });
+}
+
 const CustomNode = ({ data, id, selected }) => {
   const Icon = iconMap[data.type] || MessageSquare;
   const colors = colorMap[data.type] || colorMap.output;
 
-  const { executingNodes, nodeStatuses, nodes, setNodes } = useWorkflowStore();
+  // Use individual selectors to avoid re-rendering on unrelated store changes.
+  const executingNodes = useWorkflowStore((s) => s.executingNodes);
+  const nodeStatuses   = useWorkflowStore((s) => s.nodeStatuses);
+  const lastResult     = useWorkflowStore((s) => s.lastResult);
+  const { setNodes }   = useReactFlow(); // update ReactFlow local state, not the store directly
+
   const isExecuting = executingNodes.has(id);
   const status      = nodeStatuses[id];
 
-  // Local config state (synced to node data)
-  const [configOpen, setConfigOpen] = useState(data.type === 'input'); // input opens by default
+  // Local config state
+  const [configOpen, setConfigOpen] = useState(data.type === 'input');
+  const [showOutput, setShowOutput] = useState(false);
   const [goal, setGoal]             = useState(data.config?.goal || '');
 
-  // Persist config change back to the node in the store
+  // Map node type → relevant output from lastResult
+  const getNodeOutput = () => {
+    if (!lastResult) return null;
+    switch (data.type) {
+      case 'planner':
+        return lastResult.refinedPlan || lastResult.plan;
+      case 'executor':
+        return lastResult.refinedResult || lastResult.executionResult;
+      case 'critic':
+        if (!lastResult.critique) return null;
+        const c = lastResult.critique;
+        return [
+          `Score: ${lastResult.qualityScore}/100`,
+          `Satisfactory: ${c.isSatisfactory ? 'Yes' : 'No'}`,
+          c.issuesFound?.length ? `\nIssues:\n${c.issuesFound.map(i => `• ${i}`).join('\n')}` : '',
+          c.strengths?.length   ? `\nStrengths:\n${c.strengths.map(s => `• ${s}`).join('\n')}` : '',
+          c.refinementFocus && c.refinementFocus !== 'None' ? `\nRefinement Focus: ${c.refinementFocus}` : '',
+        ].filter(Boolean).join('\n');
+      case 'memory':
+        return lastResult.memoryUpdate && lastResult.memoryUpdate !== 'No memory update.'
+          ? lastResult.memoryUpdate
+          : 'No new memory entries captured.';
+      case 'output':
+        return lastResult.refinedResult || lastResult.executionResult;
+      default:
+        return null;
+    }
+  };
+
+  const nodeOutput = getNodeOutput();
+  const hasOutput  = !!nodeOutput;
+
   const updateConfig = useCallback((key, value) => {
-    const updated = nodes.map(n =>
-      n.id === id
-        ? { ...n, data: { ...n.data, config: { ...n.data.config, [key]: value } } }
-        : n
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === id
+          ? { ...n, data: { ...n.data, config: { ...n.data.config, [key]: value } } }
+          : n
+      )
     );
-    setNodes(updated);
-  }, [id, nodes, setNodes]);
+  }, [id, setNodes]);
 
   const handleGoalChange = (e) => {
     setGoal(e.target.value);
     updateConfig('goal', e.target.value);
   };
 
-  // Border colour based on status
+  const handleHeaderClick = () => {
+    if (data.type === 'input') return;
+    if (hasOutput) {
+      setShowOutput(o => !o);
+    } else {
+      setConfigOpen(o => !o);
+    }
+  };
+
   const borderClass =
-    isExecuting         ? 'border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.3)]' :
+    isExecuting          ? 'border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.3)]' :
     status === 'completed'? 'border-emerald-500' :
     status === 'failed'   ? 'border-red-500' :
     selected              ? 'border-primary-500' :
@@ -72,10 +144,10 @@ const CustomNode = ({ data, id, selected }) => {
     <div className={`relative ${isExecuting ? 'animate-pulse' : ''}`}>
       <div className={`w-72 bg-dark-800 rounded-xl border-2 transition-all duration-200 shadow-lg ${borderClass}`}>
 
-        {/* ── Node header ─────────────────────────────────────────── */}
+        {/* ── Node header ─────────────────────────────────────── */}
         <div
-          className={`flex items-center gap-3 p-4 border-b border-dark-700 rounded-t-xl cursor-pointer select-none`}
-          onClick={() => data.type !== 'input' && setConfigOpen(o => !o)}
+          className="flex items-center gap-3 p-4 border-b border-dark-700 rounded-t-xl cursor-pointer select-none hover:bg-dark-700/30 transition-colors"
+          onClick={handleHeaderClick}
         >
           <div className={`w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
             {isExecuting
@@ -88,36 +160,52 @@ const CustomNode = ({ data, id, selected }) => {
             <p className="text-xs text-gray-400 capitalize">{data.type} Agent</p>
           </div>
 
-          {/* Status badge */}
           {status === 'completed' && (
             <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
           )}
 
-          {/* Expand toggle (not for input — always expanded) */}
           {data.type !== 'input' && (
-            configOpen
-              ? <ChevronUp   className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            hasOutput
+              ? (showOutput
+                  ? <ChevronUp   className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  : <ChevronDown className={`w-4 h-4 flex-shrink-0 ${hasOutput ? 'text-emerald-400' : 'text-gray-400'}`} />
+                )
+              : (configOpen
+                  ? <ChevronUp   className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                )
           )}
         </div>
 
-        {/* ── Description / config body ────────────────────────── */}
+        {/* ── Body ─────────────────────────────────────────────── */}
         <div className="p-4 space-y-3">
           <p className="text-xs text-gray-400">{descriptions[data.type]}</p>
 
-          {/* INPUT node — always show goal textarea */}
+          {/* OUTPUT VIEW — shows agent result when available */}
+          {data.type !== 'input' && showOutput && hasOutput && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 mb-1">
+                <FileText className="w-3 h-3 text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Agent Output</span>
+              </div>
+              <div className="max-h-48 overflow-y-auto bg-dark-900 rounded-lg p-2 border border-dark-600">
+                {renderOutput(nodeOutput)}
+              </div>
+            </div>
+          )}
+
+          {/* CONFIG VIEW — only shown when no output yet, or for input node */}
           {data.type === 'input' && (
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-400">Goal</label>
               <textarea
                 rows={3}
-                placeholder="e.g. Write a research summary on neural networks"
+                placeholder="e.g. Write a Python function to reverse a linked list"
                 value={goal}
                 onChange={handleGoalChange}
                 className="w-full px-3 py-2 text-xs bg-dark-900 border border-dark-700 rounded-lg
                            focus:border-blue-500 focus:outline-none resize-none text-white
                            placeholder:text-gray-600"
-                // Prevent ReactFlow drag when typing
                 onMouseDown={e => e.stopPropagation()}
               />
               {goal.trim().length > 0 && (
@@ -126,8 +214,8 @@ const CustomNode = ({ data, id, selected }) => {
             </div>
           )}
 
-          {/* CRITIC node config — expandable */}
-          {data.type === 'critic' && configOpen && (
+          {/* Critic config — only shown when no output */}
+          {data.type === 'critic' && !showOutput && configOpen && (
             <div className="space-y-2 pt-1">
               <label className="text-xs font-medium text-gray-400">Quality Threshold</label>
               <select
@@ -142,6 +230,11 @@ const CustomNode = ({ data, id, selected }) => {
                 <option value="90">90 — High quality required</option>
               </select>
             </div>
+          )}
+
+          {/* Hint when output is available but not shown */}
+          {data.type !== 'input' && hasOutput && !showOutput && (
+            <p className="text-xs text-emerald-400/70">↑ Click to view agent output</p>
           )}
 
           {/* Status pill */}
@@ -162,7 +255,7 @@ const CustomNode = ({ data, id, selected }) => {
         </div>
       </div>
 
-      {/* ── ReactFlow handles ────────────────────────────────────── */}
+      {/* ReactFlow handles */}
       {data.type !== 'input' && (
         <Handle
           type="target"

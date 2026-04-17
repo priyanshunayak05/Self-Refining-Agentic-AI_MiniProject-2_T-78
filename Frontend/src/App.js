@@ -12,17 +12,20 @@ import Settings from './pages/Settings/Settings';
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
+      <Routes>
+        {/* Landing page renders WITHOUT the sidebar/header layout */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* All other pages render inside the Layout (sidebar + header) */}
+        <Route element={<Layout />}>
           <Route path="/workspace" element={<WorkflowBuilder />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/memory" element={<MemoryViewer />} />
           <Route path="/history" element={<ExecutionHistory />} />
           <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </Layout>
+        </Route>
+      </Routes>
     </Router>
   );
 }

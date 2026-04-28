@@ -1,193 +1,247 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, XCircle, Clock, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  FileText,
+} from 'lucide-react';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const statusConfig = {
-  success:  { icon: CheckCircle,   color: 'text-emerald-400', bg: 'bg-emerald-500/20', label: 'Success'  },
-  refined:  { icon: AlertTriangle, color: 'text-amber-400',   bg: 'bg-amber-500/20',   label: 'Refined'  },
-  failed:   { icon: XCircle,       color: 'text-red-400',     bg: 'bg-red-500/20',     label: 'Failed'   },
+  success: {
+    icon: CheckCircle,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/20',
+    label: 'Success',
+  },
+  refined: {
+    icon: AlertTriangle,
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/20',
+    label: 'Refined',
+  },
+  failed: {
+    icon: XCircle,
+    color: 'text-red-400',
+    bg: 'bg-red-500/20',
+    label: 'Failed',
+  },
 };
 
 const timeAgo = (iso) => {
   const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
-  if (diff < 60)   return `${diff}s ago`;
+
+  if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+
   return `${Math.floor(diff / 3600)}h ago`;
 };
 
-// ── Expandable execution card ─────────────────────────────────────────────────
+/* ───────────────────────────────────────────── */
+/* Execution Card */
+/* ───────────────────────────────────────────── */
+
 const ExecutionCard = ({ exec }) => {
   const [expanded, setExpanded] = useState(false);
+
   const cfg = statusConfig[exec.status] || statusConfig.success;
   const Icon = cfg.icon;
 
   return (
     <div className="bg-dark-800 border border-dark-700 rounded-xl overflow-hidden">
-      {/* Summary row */}
+
+      {/* HEADER */}
       <div
         className="flex items-center gap-4 p-5 cursor-pointer hover:bg-dark-700/30 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+        <div
+          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}
+        >
           <Icon className={`w-6 h-6 ${cfg.color}`} />
         </div>
 
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{exec.goal}</p>
-          <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+
+          <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 flex-wrap">
             <span className="font-mono text-xs">{exec.id}</span>
-            <span className={`font-medium text-xs px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+
+            <span
+              className={`font-medium text-xs px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}
+            >
               {cfg.label}
             </span>
-            <span>Score: <span className="text-white font-semibold">{exec.qualityScore}/100</span></span>
+
+            <span>
+              Score:{' '}
+              <span className="text-white font-semibold">
+                {exec.qualityScore}/100
+              </span>
+            </span>
+
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {exec.iterationsRan} iteration{exec.iterationsRan > 1 ? 's' : ''}
+              {exec.iterationsRan} iteration
+              {exec.iterationsRan > 1 ? 's' : ''}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-gray-500 text-sm">{timeAgo(exec.timestamp)}</span>
-          {expanded
-            ? <ChevronUp className="w-4 h-4 text-gray-400" />
-            : <ChevronDown className="w-4 h-4 text-gray-400" />
-          }
+          <span className="text-gray-500 text-sm">
+            {timeAgo(exec.timestamp)}
+          </span>
+
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          )}
         </div>
       </div>
 
-      {/* Expanded detail */}
+      {/* BODY */}
       {expanded && (
         <div className="border-t border-dark-700 divide-y divide-dark-700/50">
-          {/* Critique section */}
-          {exec.critique && (
-            <div className="p-5 space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Critic Evaluation</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-dark-900 rounded-lg p-3">
-                  <p className="text-gray-400 text-xs mb-1">Issues Found</p>
-                  {exec.critique.issuesFound?.length
-                    ? exec.critique.issuesFound.map((iss, i) => <p key={i} className="text-red-300 text-xs">• {iss}</p>)
-                    : <p className="text-gray-600 text-xs">None</p>
-                  }
-                </div>
-                <div className="bg-dark-900 rounded-lg p-3">
-                  <p className="text-gray-400 text-xs mb-1">Strengths</p>
-                  {exec.critique.strengths?.length
-                    ? exec.critique.strengths.map((s, i) => <p key={i} className="text-emerald-300 text-xs">• {s}</p>)
-                    : <p className="text-gray-600 text-xs">None recorded</p>
-                  }
-                </div>
-              </div>
-              {exec.critique.refinementFocus && exec.critique.refinementFocus !== 'None' && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-300">
-                  <span className="font-semibold">Refinement focus: </span>{exec.critique.refinementFocus}
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* Plan */}
+          {/* PLAN */}
           <div className="p-5">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
               {exec.iterationsRan > 1 ? 'Refined Plan' : 'Plan'}
             </h4>
+
             <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono bg-dark-900 rounded-lg p-3 max-h-40 overflow-y-auto">
               {exec.refinedPlan || exec.plan}
             </pre>
           </div>
 
-          {/* Final Result */}
+          {/* FINAL OUTPUT */}
           <div className="p-5">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Final Output</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
+              Final Output
+            </h4>
+
             <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono bg-dark-900 rounded-lg p-3 max-h-48 overflow-y-auto">
               {exec.refinedResult || exec.executionResult}
             </pre>
           </div>
 
-          {/* Memory update */}
-          {exec.memoryUpdate && exec.memoryUpdate !== 'No memory update.' && (
-            <div className="p-5">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Memory Captured</h4>
-              <pre className="text-xs text-purple-300 whitespace-pre-wrap font-mono bg-dark-900 rounded-lg p-3 max-h-24 overflow-y-auto">
-                {exec.memoryUpdate}
-              </pre>
-            </div>
-          )}
+          {/* DOWNLOAD BUTTONS */}
+          <div className="p-5 flex flex-wrap gap-3">
+
+            <a
+              href={`${API_BASE}/agent/export/pdf/${exec.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium text-white transition-all"
+            >
+              <FileText className="w-4 h-4" />
+              Download PDF
+            </a>
+
+            <a
+              href={`${API_BASE}/agent/export/docx/${exec.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium text-white transition-all"
+            >
+              <FileText className="w-4 h-4" />
+              Download DOCX
+            </a>
+
+          </div>
+
         </div>
       )}
     </div>
   );
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+/* ───────────────────────────────────────────── */
+/* MAIN PAGE */
+/* ───────────────────────────────────────────── */
+
 const ExecutionHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const res  = await fetch(`${API_BASE}/agent/history`);
+      const res = await fetch(`${API_BASE}/agent/history`);
       const json = await res.json();
-      if (json.success) setHistory(json.data);
-      else throw new Error('Failed to load history');
+
+      if (json.success) {
+        setHistory(json.data);
+      } else {
+        throw new Error('Failed to load history');
+      }
     } catch (err) {
-      setError('Cannot reach backend. Make sure the server is running on port 5000.');
+      setError(
+        'Cannot reach backend. Make sure server is running on port 5000.'
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="flex items-center justify-between">
+
         <div>
           <h1 className="text-2xl font-bold">Execution History</h1>
+
           <p className="text-gray-400 mt-1">
-            {history.length > 0 ? `${history.length} execution${history.length > 1 ? 's' : ''} recorded` : 'Past workflow runs'}
+            {history.length > 0
+              ? `${history.length} execution${
+                  history.length > 1 ? 's' : ''
+                } recorded`
+              : 'Past workflow runs'}
           </p>
         </div>
+
         <button
           onClick={fetchHistory}
           className="flex items-center gap-2 px-4 py-2 bg-dark-800 border border-dark-700 rounded-lg hover:border-primary-500 transition-colors"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+          />
           Refresh
         </button>
       </div>
 
-      {/* Error */}
+      {/* ERROR */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">⚠️ {error}</div>
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">
+          ⚠️ {error}
+        </div>
       )}
 
-      {/* Content */}
+      {/* CONTENT */}
       {loading ? (
-        <div className="space-y-4">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="bg-dark-800 border border-dark-700 rounded-xl p-5 animate-pulse">
-              <div className="flex gap-4 items-center">
-                <div className="w-12 h-12 bg-dark-700 rounded-xl" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-dark-700 rounded w-3/4" />
-                  <div className="h-3 bg-dark-700 rounded w-1/2" />
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="text-center py-10 text-gray-500">
+          Loading history...
         </div>
       ) : history.length === 0 ? (
-        <div className="text-center py-16">
-          <Clock className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-          <p className="text-gray-500">No executions yet.</p>
-          <p className="text-gray-600 text-sm mt-1">Go to Workflow Builder and run a goal to see history here.</p>
+        <div className="text-center py-10 text-gray-500">
+          No executions yet.
         </div>
       ) : (
         <div className="space-y-4">

@@ -75,9 +75,10 @@ Respond ONLY with valid JSON. Zero preamble. Zero markdown. Zero explanation.
 `;
 
 export async function criticAgent(
-  originalGoal:    string,
-  planSteps:       string,
-  executionResult: string
+  originalGoal: string,
+  planSteps: string,
+  executionResult: string,
+  apiKey?: string,
 ) {
   const userContext = `
 Original Goal:
@@ -90,6 +91,6 @@ Execution Result:
 ${executionResult}
 `.trim();
 
-  const result = await chatJSON(CRITIC_SYSTEM_PROMPT, userContext, 0.1);
+  const result = await chatJSON(CRITIC_SYSTEM_PROMPT, userContext, 0.1, apiKey);
   return result.critique;
 }

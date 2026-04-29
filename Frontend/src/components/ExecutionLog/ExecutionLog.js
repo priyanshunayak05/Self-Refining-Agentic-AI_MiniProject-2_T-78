@@ -4,7 +4,9 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { format } from 'date-fns';
 
 const ExecutionLog = ({ onClose }) => {
-  const { logs, isExecuting, clearLogs } = useWorkflowStore();
+  const logs        = useWorkflowStore((s) => s.logs);
+  const isExecuting = useWorkflowStore((s) => s.isExecuting);
+  const clearLogs   = useWorkflowStore((s) => s.clearLogs);
   const [isExpanded, setIsExpanded] = React.useState(true);
 
   const getLogColor = (type) => {

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
 
-const Layout = ({ children }) => {
+const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
@@ -10,8 +11,8 @@ const Layout = ({ children }) => {
       <Sidebar isOpen={sidebarOpen} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-hidden">
-          {children}
+        <main className="flex-1 min-h-0 overflow-auto">
+          <Outlet />
         </main>
       </div>
     </div>

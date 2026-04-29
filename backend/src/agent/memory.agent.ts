@@ -63,18 +63,8 @@ OUTPUT SCHEMA — NO DEVIATIONS PERMITTED
 ## Remove
 - [Outdated/conflicting memory]
 - None
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRE-OUTPUT INTERNAL CHECK (silent — never shown to user)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ Stored only reusable information
-□ No invented facts
-□ No task execution
-□ No critique
-□ Atomic memory items only
-□ Used exact schema or "No memory update."
 `.trim();
 
-export async function memoryAgent(conversationText: string) {
-  return await chatText(MEMORY_SYSTEM_PROMPT, conversationText, 0.1);
+export async function memoryAgent(conversationText: string, apiKey?: string) {
+  return await chatText(MEMORY_SYSTEM_PROMPT, conversationText, 0.1, apiKey);
 }

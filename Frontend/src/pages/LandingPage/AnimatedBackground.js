@@ -1,5 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
-// import React from "react";
+import React, { useMemo, useEffect } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 /**
@@ -42,15 +41,15 @@ const Particle = ({ index }) => {
     <motion.div
       className="particle"
       style={{
+        position: 'absolute',
         width: size,
         height: size,
-        transform: `translate(${x}vw, ${y}vh)`,
+        left: `${x}%`,
+        top: `${y}%`,
         background: color,
         boxShadow: `0 0 ${size * 3}px ${color}`,
-        willChange: 'transform, opacity',
-        position: 'absolute',
-        top: 0,
-        left: 0
+        borderRadius: '50%',
+        pointerEvents: 'none',
       }}
       animate={{
         y: [0, -40 - sr(index * 41) * 60, 20, -30, 0],

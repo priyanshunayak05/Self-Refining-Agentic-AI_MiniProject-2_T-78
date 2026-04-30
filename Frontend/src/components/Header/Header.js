@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Play, Save, LogOut, User, ChevronDown, Settings } from 'lucide-react';
+import { Menu, Play, Save, LogOut, ChevronDown, Settings } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';

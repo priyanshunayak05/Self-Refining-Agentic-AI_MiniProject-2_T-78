@@ -2,10 +2,13 @@ import { plannerAgent } from '../agent/planner.agent';
 import { executorAgent } from '../agent/executor.agent';
 import { criticAgent } from '../agent/critic.agent';
 import { memoryAgent } from '../agent/memory.agent';
+import Memory from '../models/memory';
+import Execution from '../models/execution';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface MemoryFact {
   id: string;
+  userId: string;
   fact: string;
   timestamp: string;
   keywords: string[];
@@ -13,6 +16,7 @@ interface MemoryFact {
 
 interface ExecutionRecord {
   id: string;
+  userId: string;
   goal: string;
   plan: string;
   executionResult: string;
@@ -65,44 +69,79 @@ function parseMemoryMarkdown(markdown: string): string[] {
   return facts;
 }
 
-function addMemoryFacts(newFacts: string[], timestamp: string): void {
+// function addMemoryFacts(userId: string, newFacts: string[], timestamp: string): void {
+//   for (const fact of newFacts) {
+//     const newKw = extractKeywords(fact);
+//     if (newKw.length === 0) continue;
+
+//     const isDuplicate = memoryFacts.some(existing => {
+//       if (existing.userId !== userId) return false; // ✅ isolate user
+
+//       const overlap = existing.keywords.filter(k => newKw.includes(k)).length;
+//       const union   = new Set([...existing.keywords, ...newKw]).size;
+//       return union > 0 && overlap / union > 0.6;
+//     });
+
+//     if (!isDuplicate) {
+//       memoryFacts.push({ id: `mem-${String(memoryIdCounter++).padStart(3, '0')}`, fact, timestamp, keywords: newKw, userId });
+//     }
+//   }
+//   if (memoryFacts.length > 100) memoryFacts = memoryFacts.slice(-100);
+// }
+
+async function addMemoryFacts(userId: string, newFacts: string[], timestamp: string) {
   for (const fact of newFacts) {
-    const newKw = extractKeywords(fact);
-    if (newKw.length === 0) continue;
+    const keywords = extractKeywords(fact);
 
-    const isDuplicate = memoryFacts.some(existing => {
-      const overlap = existing.keywords.filter(k => newKw.includes(k)).length;
-      const union   = new Set([...existing.keywords, ...newKw]).size;
-      return union > 0 && overlap / union > 0.6;
+    if (keywords.length === 0) continue;
+
+    await Memory.create({
+      userId,
+      fact,
+      keywords
     });
-
-    if (!isDuplicate) {
-      memoryFacts.push({ id: `mem-${String(memoryIdCounter++).padStart(3, '0')}`, fact, timestamp, keywords: newKw });
-    }
   }
-  if (memoryFacts.length > 100) memoryFacts = memoryFacts.slice(-100);
 }
 
-function getRelevantFacts(goal: string, topN = 5): string[] {
+// function getRelevantFacts(userId: string, goal: string, topN = 5): string[] {
+//   const goalKw = extractKeywords(goal);
+//   if (goalKw.length === 0 || memoryFacts.length === 0) return [];
+//   return memoryFacts
+//     .filter(f => f.userId === userId)
+//     .map(f => ({ f, score: f.keywords.filter(k => goalKw.includes(k)).length }))
+//     .filter(({ score }) => score > 0)
+//     .sort((a, b) => b.score - a.score)
+//     .slice(0, topN)
+//     .map(({ f }) => f.fact);
+// }
+
+async function getRelevantFacts(userId: string, goal: string, topN = 5) {
   const goalKw = extractKeywords(goal);
-  if (goalKw.length === 0 || memoryFacts.length === 0) return [];
-  return memoryFacts
-    .map(f => ({ f, score: f.keywords.filter(k => goalKw.includes(k)).length }))
-    .filter(({ score }) => score > 0)
+
+  if (goalKw.length === 0) return [];
+
+  const memories = await Memory.find({ userId });
+
+  return memories
+    .map(m => ({
+      fact: m.fact,
+      score: m.keywords.filter(k => goalKw.includes(k)).length
+    }))
+    .filter(m => m.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, topN)
-    .map(({ f }) => f.fact);
+    .map(m => m.fact);
 }
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────
-export async function runPipeline(goal: string, apiKey?: string): Promise<ExecutionRecord> {
+export async function runPipeline(userId: string, goal: string, apiKey?: string): Promise<ExecutionRecord> {
   const id        = `exec-${Date.now()}`;
   const timestamp = new Date().toISOString();
   const usedCustomKey = !!(apiKey && apiKey.trim());
 
   // ── Step 1: Memory retrieval + Plan ──────────────────────────────────────
   console.log(`[PIPELINE ${id}] Step 1 – Memory retrieval + Planner`);
-  const relevantFacts = getRelevantFacts(goal);
+  const relevantFacts = await getRelevantFacts(userId, goal);
   const memoryContext = relevantFacts.length > 0
     ? `\n\n--- RELEVANT MEMORY FROM PAST SESSIONS ---\n${relevantFacts.map(f => `• ${f}`).join('\n')}\n--- END MEMORY ---`
     : '';
@@ -157,12 +196,12 @@ Refinement Focus: ${critique.refinementFocus}
   const memoryUpdate = await memoryAgent(conversationText, apiKey);
 
   if (memoryUpdate !== 'No memory update.') {
-    addMemoryFacts(parseMemoryMarkdown(memoryUpdate), timestamp);
+    await addMemoryFacts(userId, parseMemoryMarkdown(memoryUpdate), timestamp);
   }
 
   // ── Store & Return ──────────────────────────────────────────────────────────
   const record: ExecutionRecord = {
-    id, goal, plan, executionResult, critique,
+    id, userId, goal, plan, executionResult, critique,
     refinedPlan, refinedResult, memoryUpdate,
     qualityScore: finalScore,
     iterationsRan,
@@ -170,26 +209,85 @@ Refinement Focus: ${critique.refinementFocus}
     timestamp,
     usedCustomKey,
   };
-  executionHistory.set(id, record);
+  // executionHistory.set(id, record);
+  await Execution.create(record);
   return record;
 }
 
-export function getHistory(): ExecutionRecord[] {
-  return Array.from(executionHistory.values()).reverse();
+
+
+// --------------- get history ----------------------
+// export function getHistory(userId: string): ExecutionRecord[] {
+//   return Array.from(executionHistory.values())
+//     .filter(r => r.userId === userId) // ✅ filter by user
+//     .reverse();
+// }
+export async function getHistory(userId: string) {
+  return await Execution.find({ userId }).sort({ timestamp: -1 });
 }
 
-export function getMemoryStore(): { id: string; content: string; timestamp: string; keywords: string[] }[] {
-  return memoryFacts.map(f => ({ id: f.id, content: f.fact, timestamp: f.timestamp, keywords: f.keywords }));
+// ------------- get memory store ----------------------
+// export function getMemoryStore(userId: string) {
+//   return memoryFacts
+//     .filter(f => f.userId === userId) // ✅ filter
+//     .map(f => ({
+//       id: f.id,
+//       content: f.fact,
+//       timestamp: f.timestamp,
+//       keywords: f.keywords
+//     }));
+// }
+export async function getMemoryStore(userId: string) {
+  const data = await Memory.find({ userId });
+
+  return data.map(m => ({
+    id: m._id,
+    content: m.fact,
+    timestamp: m.timestamp,
+    keywords: m.keywords
+  }));
 }
 
-export function getStats() {
-  const all     = getHistory();
-  const success = all.filter(r => r.status === 'success' || r.status === 'refined').length;
-  const avgScore = all.length ? Math.round(all.reduce((s, r) => s + r.qualityScore, 0) / all.length) : 0;
+//  --------- get status ----------------
+// export function getStats(userId: string) {
+//   const all = getHistory(userId); // ✅ user-specific history
+
+//   const success = all.filter(r =>
+//     r.status === 'success' || r.status === 'refined'
+//   ).length;
+
+//   const avgScore = all.length
+//     ? Math.round(all.reduce((s, r) => s + r.qualityScore, 0) / all.length)
+//     : 0;
+
+//   return {
+//     totalExecutions: all.length,
+//     successRate: all.length
+//       ? Math.round((success / all.length) * 100)
+//       : 0,
+//     avgQualityScore: avgScore,
+//     memoryEntries: memoryFacts.filter(f => f.userId === userId).length, // ✅ fix
+//   };
+// }
+export async function getStats(userId: string) {
+  const executions = await Execution.find({ userId });
+
+  const total = executions.length;
+
+  const success = executions.filter(r =>
+    r.status === 'success' || r.status === 'refined'
+  ).length;
+
+  const avgScore = total
+    ? Math.round(executions.reduce((s, r) => s + (r.qualityScore ?? 0), 0) / total)
+    : 0;
+
+  const memoryCount = await Memory.countDocuments({ userId });
+
   return {
-    totalExecutions: all.length,
-    successRate:     all.length ? Math.round((success / all.length) * 100) : 0,
+    totalExecutions: total,
+    successRate: total ? Math.round((success / total) * 100) : 0,
     avgQualityScore: avgScore,
-    memoryEntries:   memoryFacts.length,
+    memoryEntries: memoryCount
   };
 }

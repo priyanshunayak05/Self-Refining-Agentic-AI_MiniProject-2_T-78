@@ -5,7 +5,11 @@ const pipeline_1 = require("../orchestrator/pipeline");
 const router = (0, express_1.Router)();
 // ─── POST /agent/goal ─────────────────────────────────────────────────────────
 router.post('/goal', async (req, res) => {
-    const { goal, groqApiKey } = req.body;
+    const { goal, groqApiKey, userId } = req.body;
+    if (!userId || typeof userId !== 'string') {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+    }
     if (!goal || typeof goal !== 'string' || goal.trim().length < 5) {
         res.status(400).json({ error: 'Please provide a valid goal (at least 5 characters).' });
         return;
@@ -14,7 +18,7 @@ router.post('/goal', async (req, res) => {
     const apiKey = groqApiKey && groqApiKey.trim() ? groqApiKey.trim() : undefined;
     console.log(`[API] New goal received: "${goal.substring(0, 60)}..." | Key: ${apiKey ? 'custom' : 'system'}`);
     try {
-        const result = await (0, pipeline_1.runPipeline)(goal.trim(), apiKey);
+        const result = await (0, pipeline_1.runPipeline)(userId, goal.trim(), apiKey);
         res.status(200).json({ success: true, data: result });
     }
     catch (err) {
@@ -23,45 +27,73 @@ router.post('/goal', async (req, res) => {
     }
 });
 // ─── GET /agent/status ────────────────────────────────────────────────────────
-router.get('/status', (_req, res) => {
-    res.status(200).json({ success: true, status: 'operational', stats: (0, pipeline_1.getStats)() });
+router.get('/status/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const stats = await (0, pipeline_1.getStats)(userId);
+    res.status(200).json({
+        success: true,
+        status: 'operational',
+        stats
+    });
 });
 // ─── GET /agent/history ───────────────────────────────────────────────────────
-router.get('/history', (_req, res) => {
-    const history = (0, pipeline_1.getHistory)();
-    res.status(200).json({ success: true, count: history.length, data: history });
+router.get('/history/:userId', async (req, res) => {
+    const { userId } = req.params;
+    if (!userId) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+    }
+    const history = await (0, pipeline_1.getHistory)(userId);
+    res.status(200).json({
+        success: true,
+        count: history.length,
+        data: history
+    });
 });
 // ─── GET /agent/memory ────────────────────────────────────────────────────────
-router.get('/memory', (_req, res) => {
-    const memory = (0, pipeline_1.getMemoryStore)();
+router.get('/memory/:userId', async (req, res) => {
+    const { userId } = req.params;
+    if (!userId) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+    }
+    const memory = await (0, pipeline_1.getMemoryStore)(userId);
     res.status(200).json({
         success: true,
         count: memory.length,
-        data: memory.map(entry => ({
-            id: entry.id,
-            content: entry.content,
-            timestamp: entry.timestamp,
-            keywords: entry.keywords,
-        })),
+        data: memory
     });
 });
 // ─── GET /agent/memory/search ─────────────────────────────────────────────────
-router.get('/memory/search', (req, res) => {
+router.get('/memory/search/:userId', async (req, res) => {
+    const { userId } = req.params;
     const { q } = req.query;
+    if (!userId) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+    }
     if (!q || q.trim().length < 2) {
         res.status(400).json({ error: 'Provide a search query via ?q=...' });
         return;
     }
-    const memory = (0, pipeline_1.getMemoryStore)();
-    const queryWords = q.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    const memory = await (0, pipeline_1.getMemoryStore)(userId);
+    const queryWords = q
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
     const scored = memory
-        .map(entry => {
-        const score = entry.keywords.filter(k => queryWords.includes(k)).length;
-        return { ...entry, score };
-    })
+        .map(entry => ({
+        ...entry,
+        score: entry.keywords.filter(k => queryWords.includes(k)).length,
+    }))
         .filter(e => e.score > 0)
         .sort((a, b) => b.score - a.score);
-    res.status(200).json({ success: true, count: scored.length, data: scored });
+    res.status(200).json({
+        success: true,
+        count: scored.length,
+        data: scored
+    });
 });
 exports.default = router;
 //# sourceMappingURL=agent.routes.js.map

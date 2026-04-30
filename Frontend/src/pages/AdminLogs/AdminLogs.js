@@ -4,7 +4,10 @@ export default function AdminLogs() {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/admin/logs')
+    const user = JSON.parse(localStorage.getItem('agentic-ai-user') || '{}');
+    const userId = user?.id;
+
+    fetch(`http://localhost:5000/admin/logs/${userId}`) // ✅ PARAMS
       .then(r => r.json())
       .then(d => setLogs(d.data));
   }, []);

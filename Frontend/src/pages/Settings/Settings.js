@@ -82,13 +82,15 @@ const Settings = () => {
     setKeyValidating(true);
     setKeyStatus(null);
     setKeyError('');
+    const { user } = useAuthStore();
+    const userId = user?.id; 
     try {
-      const res = await fetch(`${settings.apiEndpoint}/agent/status`);
+      const res = await fetch(`${settings.apiEndpoint}/agent/status/${userId}`);
       // We test by POSTing a tiny goal with the key
       const testRes = await fetch(`${settings.apiEndpoint}/agent/goal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: 'Say hello', groqApiKey: groqApiKey.trim() }),
+        body: JSON.stringify({ goal: 'Say hello', groqApiKey: groqApiKey.trim(), userId: userId }),
       });
       const data = await testRes.json();
       if (testRes.ok && data.success) {

@@ -64,7 +64,7 @@ app.get('/', (_req: Request, res: Response) => {
       'GET  /agent/memory',
       'GET  /agent/memory/search?q=...',
       'GET  /agent/export/pdf/:id',
-      'GET  /agent/export/docx/:id',
+      'GET  /agent/export/docx/:id',  
       'GET  /admin/logs',
       'DELETE /admin/logs',
     ],

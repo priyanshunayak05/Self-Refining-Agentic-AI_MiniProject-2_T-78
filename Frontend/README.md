@@ -13,7 +13,7 @@ This project provides a visual workflow builder where users can design, execute,
 
 ## 🌐 Live Demo
 
-🔗 **[https://self-refining-agentic-ai-miniproject-2-t.onrender.com/](https://self-refining-agentic-ai-miniproject-2-t.onrender.com/)**
+🔗 **[https://refining-agent.vercel.app/](https://refining-agent.vercel.app/)**
 
 ---
 

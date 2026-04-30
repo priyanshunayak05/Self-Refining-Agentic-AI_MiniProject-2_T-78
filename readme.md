@@ -67,7 +67,20 @@ User Goal
 ```bash
 cd backend
 npm install
-cp .env.example .env          # then open .env and paste your GROQ_API_KEY and MONGO_URI
+cp .env.example .env
+```
+
+Open `.env` and fill in **all required values**:
+
+| Variable | Description |
+|----------|-------------|
+| `MONGO_URI` | MongoDB Atlas connection string |
+| `GROQ_API_KEY` | Your Groq API key (free at [console.groq.com](https://console.groq.com)) |
+| `JWT_SECRET` | A long random string — generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `NODE_ENV` | Set to `production` on Render/AWS |
+| `FRONTEND_URL` | Your Vercel URL (optional, for strict CORS) |
+
+```bash
 npm run build
 npm start
 ```
@@ -79,7 +92,16 @@ Server starts at **http://localhost:5000**
 ```bash
 cd Frontend
 npm install
-cp .env.example .env          # default values work for local dev
+cp .env.example .env
+```
+
+Open `.env` and set:
+
+| Variable | Description |
+|----------|-------------|
+| `REACT_APP_API_URL` | Your backend URL (e.g. `http://localhost:5000` for local, or your Render URL in production) |
+
+```bash
 npm start
 ```
 
@@ -101,7 +123,7 @@ App opens at **http://localhost:3000**
 
 Base URL (local): `http://localhost:5000`
 Base URL (AWS Primary): `http://<aws-ec2-instance-ip>:5000`
-Base URL (Render Backup): `https://agentic-ai-backend-t78.onrender.com`
+Base URL (Render Backup): `https://<your-backend-id>.onrender.com`
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
@@ -123,14 +145,12 @@ Base URL (Render Backup): `https://agentic-ai-backend-t78.onrender.com`
 
 The system implements **Role-Based Access Control (RBAC)** to ensure data privacy and system integrity.
 
-### 1. Administrative Promotion
-To create the first admin or recover access, use the secret promotion endpoint with your `MASTER_KEY`:
-
-```bash
-curl -X POST http://localhost:5000/auth/promote \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@gmail.com", "masterKey": "t78-admin-override-99"}'
+### 1. Admin Access
+Admin privileges are granted by directly editing the user's `role` field in MongoDB:
 ```
+Collection: users → find your user document → set role: "admin"
+```
+Once set, the user will see the **Admin Logs** menu item on next login.
 
 ### 2. Audit Trail & Monitoring
 Admins have access to a dedicated **Admin Logs** dashboard.

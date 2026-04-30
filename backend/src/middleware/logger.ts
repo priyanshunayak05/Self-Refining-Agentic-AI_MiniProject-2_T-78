@@ -3,9 +3,18 @@ import Log from '../models/Log';
 
 export async function logger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
-  
-  // Robust IP detection for cloud deployments
-  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.socket.remoteAddress || 'unknown';
+
+  const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.ip
+    || req.socket.remoteAddress
+    || 'unknown';
+
+  // ::1 = IPv6 loopback, ::ffff: prefix = IPv4-mapped IPv6
+  const clientIp = rawIp === '::1'
+    ? '127.0.0.1'
+    : rawIp.startsWith('::ffff:')
+      ? rawIp.replace('::ffff:', '')
+      : rawIp;
 
   res.on('finish', async () => {
     try {
@@ -17,9 +26,7 @@ export async function logger(req: Request, res: Response, next: NextFunction) {
         status: String(res.statusCode),
         responseTime: Date.now() - start
       });
-    } catch (err) {
-      // Silent fail for logging errors to prevent request hanging
-    }
+    } catch {}
   });
   next();
 }

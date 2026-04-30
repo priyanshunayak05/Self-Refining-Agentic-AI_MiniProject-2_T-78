@@ -5,12 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const ExecutionSchema = new mongoose_1.default.Schema({
+    id: { type: String, index: true },
     userId: { type: String, required: true, index: true },
     goal: String,
     plan: String,
     executionResult: String,
     refinedPlan: String,
     refinedResult: String,
+    critique: mongoose_1.default.Schema.Types.Mixed,
     qualityScore: Number,
     iterationsRan: Number,
     status: String,

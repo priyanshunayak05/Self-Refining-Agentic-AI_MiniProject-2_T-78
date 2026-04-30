@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const ExecutionSchema = new mongoose.Schema({
+  id: { type: String, index: true },
   userId: { type: String, required: true, index: true },
 
   goal: String,
@@ -8,6 +9,7 @@ const ExecutionSchema = new mongoose.Schema({
   executionResult: String,
   refinedPlan: String,
   refinedResult: String,
+  critique: mongoose.Schema.Types.Mixed,
 
   qualityScore: Number,
   iterationsRan: Number,

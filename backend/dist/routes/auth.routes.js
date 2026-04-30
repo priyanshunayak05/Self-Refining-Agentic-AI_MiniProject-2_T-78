@@ -123,9 +123,10 @@ router.get('/me', auth_middleware_1.authMiddleware, async (req, res) => {
    PUT /auth/api-key  (protected) — save user's Groq key
 ────────────────────────────────────────────────────────────── */
 router.put('/api-key', auth_middleware_1.authMiddleware, async (req, res) => {
-    const { groqApiKey, useCustomGroqKey } = req.body;
+    const authReq = req;
+    const { groqApiKey, useCustomGroqKey } = authReq.body;
     try {
-        await User_1.default.findByIdAndUpdate(req.userId, {
+        await User_1.default.findByIdAndUpdate(authReq.userId, {
             groqApiKey: groqApiKey || '',
             useCustomGroqKey: Boolean(useCustomGroqKey),
         });

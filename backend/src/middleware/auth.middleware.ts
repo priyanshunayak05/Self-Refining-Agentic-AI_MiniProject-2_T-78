@@ -1,15 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
   userId?: string;
   userEmail?: string;
+  body: any;
+  headers: any;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'agentic-ai-secret-key-change-in-prod';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('❌ JWT_SECRET is not set in environment variables. Please add it to your .env file.');
+}
 
-export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
+export const authMiddleware: RequestHandler = (req, res, next): void => {
+  const authReq = req as AuthRequest;
+  const authHeader = authReq.headers['authorization'] as string | undefined;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ success: false, error: 'No token provided. Please login.' });
@@ -20,8 +26,8 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
+    authReq.userId = decoded.userId;
+    authReq.userEmail = decoded.email;
     next();
   } catch (err) {
     res.status(401).json({ success: false, error: 'Invalid or expired token. Please login again.' });

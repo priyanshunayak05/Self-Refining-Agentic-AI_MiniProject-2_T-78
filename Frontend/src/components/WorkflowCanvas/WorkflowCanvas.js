@@ -3,10 +3,8 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  addEdge,
   useNodesState,
   useEdgesState,
-  ConnectionMode,
   Panel,
 } from 'reactflow';
 import { useLocation } from 'react-router-dom';
@@ -212,14 +210,41 @@ const ResultPanel = ({ result, onClose }) => {
   );
 };
 
+// ── Persist helpers ──────────────────────────────────────────────────────────
+const STORAGE_KEY = 'agentic-ai-workflow';
+
+function loadSavedWorkflow() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function persistWorkflow(nodes, edges) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges }));
+  } catch {}
+}
+
 // ── Main Canvas ───────────────────────────────────────────────────────────────
 const WorkflowCanvas = () => {
   const reactFlowWrapper = useRef(null);
   const location = useLocation();
   const initialGoal = location.state?.goal || '';
-  
-  const [nodes, setNodes, onNodesChange] = useNodesState(getDefaultNodes(initialGoal));
-  const [edges, setEdges, onEdgesChange] = useEdgesState(DEFAULT_EDGES);
+
+  // Decide starting state: prefer saved workflow unless a fresh goal was passed
+  const saved = !initialGoal ? loadSavedWorkflow() : null;
+
+  const startNodes = saved?.nodes?.length
+    ? saved.nodes
+    : getDefaultNodes(initialGoal);
+  const startEdges = saved?.edges?.length
+    ? saved.edges
+    : DEFAULT_EDGES;
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
@@ -250,22 +275,14 @@ const WorkflowCanvas = () => {
     if (lastResult) setShowResult(true);
   }, [lastResult]);
 
-  // Sync nodes/edges to store on every change
-  // NOTE: Zustand setters are stable references, so we intentionally omit them
-  // from the dependency array to avoid an infinite update loop.
+  // Sync nodes/edges to store AND auto-save on every change
   useEffect(() => {
     setStoreNodes(nodes);
     setStoreEdges(edges);
+    persistWorkflow(nodes, edges);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
 
-  const onConnect = useCallback((params) => {
-    setEdges(eds => addEdge({
-      ...params,
-      animated: true,
-      style: { stroke: '#3b82f6', strokeWidth: 2 },
-    }, eds));
-  }, [setEdges]);
 
   const onDragOver = useCallback((e) => {
     e.preventDefault();
@@ -286,8 +303,10 @@ const WorkflowCanvas = () => {
   }, [reactFlowInstance, setNodes]);
 
   const loadDefaultPipeline = () => {
-    setNodes(getDefaultNodes('').map(n => ({ ...n, data: { ...n.data, config: { ...n.data.config } } })));
+    const fresh = getDefaultNodes('').map(n => ({ ...n, data: { ...n.data, config: { ...n.data.config } } }));
+    setNodes(fresh);
     setEdges(DEFAULT_EDGES);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
@@ -297,12 +316,12 @@ const WorkflowCanvas = () => {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
         onInit={setReactFlowInstance}
         onDrop={onDrop}
         onDragOver={onDragOver}
         nodeTypes={nodeTypes}
-        connectionMode={ConnectionMode.Loose}
+        nodesConnectable={false}
+        connectOnClick={false}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         attributionPosition="bottom-left"

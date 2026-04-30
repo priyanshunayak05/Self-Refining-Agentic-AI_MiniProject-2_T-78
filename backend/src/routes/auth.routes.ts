@@ -4,11 +4,11 @@ import User from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'agentic-ai-secret-key-change-in-prod';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not set in environment variables.');
+}
 
-/* ──────────────────────────────────────────────────────────────
-   POST /auth/register
-────────────────────────────────────────────────────────────── */
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   const { username, email, password } = req.body;
 
@@ -58,9 +58,6 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-/* ──────────────────────────────────────────────────────────────
-   POST /auth/login
-────────────────────────────────────────────────────────────── */
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
@@ -103,9 +100,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-/* ──────────────────────────────────────────────────────────────
-   GET /auth/me  (protected)
-────────────────────────────────────────────────────────────── */
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = await User.findById(req.userId).select('-password');
@@ -129,14 +123,12 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
   }
 });
 
-/* ──────────────────────────────────────────────────────────────
-   PUT /auth/api-key  (protected) — save user's Groq key
-────────────────────────────────────────────────────────────── */
-router.put('/api-key', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
-  const { groqApiKey, useCustomGroqKey } = req.body;
+router.put('/api-key', authMiddleware, async (req, res: Response): Promise<void> => {
+  const authReq = req as AuthRequest;
+  const { groqApiKey, useCustomGroqKey } = authReq.body;
 
   try {
-    await User.findByIdAndUpdate(req.userId, {
+    await User.findByIdAndUpdate(authReq.userId, {
       groqApiKey: groqApiKey || '',
       useCustomGroqKey: Boolean(useCustomGroqKey),
     });

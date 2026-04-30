@@ -13,8 +13,10 @@ const MemoryViewer = () => {
   const fetchMemory = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const user = JSON.parse(localStorage.getItem('agentic-ai-user') || '{}');
+    const userId = user?.id;
     try {
-      const res  = await fetch(`${API_BASE}/agent/memory`);
+      const res  = await fetch(`${API_BASE}/agent/memory/${userId}`);
       const json = await res.json();
       if (json.success) setMemoryData(json.data);
       else throw new Error('Failed to fetch memory');
@@ -35,7 +37,7 @@ const MemoryViewer = () => {
     setLoading(true);
     setSearchMode(true);
     try {
-      const res  = await fetch(`${API_BASE}/agent/memory/search?q=${encodeURIComponent(term)}`);
+      const res  = await fetch(`${API_BASE}/agent/memory/search/${userId}?q=${encodeURIComponent(term)}`);
       const json = await res.json();
       if (json.success) setMemoryData(json.data);
     } catch {

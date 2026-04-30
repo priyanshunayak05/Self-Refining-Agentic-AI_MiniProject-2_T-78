@@ -6,8 +6,10 @@ import { getHistory } from '../orchestrator/pipeline';
 const router = Router();
 
 // ─── GET /agent/export/pdf/:id ────────────────────────────────────────────────
-router.get('/pdf/:id', (req: Request, res: Response): void => {
-  const item = getHistory().find(x => x.id === req.params.id);
+router.get('/pdf/:userId/:id', async (req: Request<{ userId: string, id: string }>, res: Response): Promise<void> => {
+  const { userId } = req.params;
+  const history = await getHistory(userId);
+  const item = history.find(x => x.id === req.params.id);
   if (!item) {
     res.status(404).json({ success: false, error: 'Execution record not found.' });
     return;
@@ -20,7 +22,7 @@ router.get('/pdf/:id', (req: Request, res: Response): void => {
 
   doc.fontSize(20).font('Helvetica-Bold').text('Agentic AI Execution Report', { align: 'center' });
   doc.moveDown();
-  doc.fontSize(10).font('Helvetica').text(`ID: ${item.id} | Status: ${item.status.toUpperCase()} | Score: ${item.qualityScore}/100`);
+  doc.fontSize(10).font('Helvetica').text(`ID: ${item.id} | Status: ${item.status?.toUpperCase() ?? 'UNKNOWN'} | Score: ${item.qualityScore}/100`);
   doc.text(`Date: ${new Date(item.timestamp).toLocaleString()}`);
   doc.moveDown();
 
@@ -45,8 +47,10 @@ router.get('/pdf/:id', (req: Request, res: Response): void => {
 });
 
 // ─── GET /agent/export/docx/:id ───────────────────────────────────────────────
-router.get('/docx/:id', async (req: Request, res: Response): Promise<void> => {
-  const item = getHistory().find(x => x.id === req.params.id);
+router.get('/docx/:userId/:id', async (req: Request<{ userId: string, id: string }>, res: Response): Promise<void> => {
+  const { userId } = req.params;
+  const history = await getHistory(userId);
+  const item = history.find(x => x.id === req.params.id);
   if (!item) {
     res.status(404).json({ success: false, error: 'Execution record not found.' });
     return;
@@ -54,17 +58,17 @@ router.get('/docx/:id', async (req: Request, res: Response): Promise<void> => {
 
   const children: Paragraph[] = [
     new Paragraph({ text: 'Agentic AI Execution Report', heading: HeadingLevel.TITLE }),
-    new Paragraph({ children: [new TextRun({ text: `ID: ${item.id}  |  Status: ${item.status.toUpperCase()}  |  Quality Score: ${item.qualityScore}/100`, bold: true })] }),
+    new Paragraph({ children: [new TextRun({ text: `ID: ${item._id}  |  Status: ${item.status?.toUpperCase() ?? 'UNKNOWN'}  |  Quality Score: ${item.qualityScore}/100`, bold: true })] }),
     new Paragraph({ children: [new TextRun({ text: `Date: ${new Date(item.timestamp).toLocaleString()}` })] }),
     new Paragraph({}),
     new Paragraph({ text: 'Goal', heading: HeadingLevel.HEADING_1 }),
-    new Paragraph({ text: item.goal }),
+    new Paragraph({ text: item.goal || '' }),
     new Paragraph({}),
     new Paragraph({ text: 'Plan', heading: HeadingLevel.HEADING_1 }),
-    new Paragraph({ text: item.plan }),
+    new Paragraph({ text: item.plan || '' }),
     new Paragraph({}),
     new Paragraph({ text: 'Execution Result', heading: HeadingLevel.HEADING_1 }),
-    new Paragraph({ text: item.refinedResult || item.executionResult }),
+    new Paragraph({ text: (item.refinedResult || item.executionResult) || '' }),
   ];
 
   if (item.refinedPlan) {

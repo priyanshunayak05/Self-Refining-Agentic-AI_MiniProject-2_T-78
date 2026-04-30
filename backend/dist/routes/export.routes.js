@@ -9,8 +9,10 @@ const docx_1 = require("docx");
 const pipeline_1 = require("../orchestrator/pipeline");
 const router = (0, express_1.Router)();
 // ─── GET /agent/export/pdf/:id ────────────────────────────────────────────────
-router.get('/pdf/:id', (req, res) => {
-    const item = (0, pipeline_1.getHistory)().find(x => x.id === req.params.id);
+router.get('/pdf/:userId/:id', async (req, res) => {
+    const { userId } = req.params;
+    const history = await (0, pipeline_1.getHistory)(userId);
+    const item = history.find(x => x.id === req.params.id);
     if (!item) {
         res.status(404).json({ success: false, error: 'Execution record not found.' });
         return;
@@ -21,7 +23,7 @@ router.get('/pdf/:id', (req, res) => {
     doc.pipe(res);
     doc.fontSize(20).font('Helvetica-Bold').text('Agentic AI Execution Report', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(10).font('Helvetica').text(`ID: ${item.id} | Status: ${item.status.toUpperCase()} | Score: ${item.qualityScore}/100`);
+    doc.fontSize(10).font('Helvetica').text(`ID: ${item.id} | Status: ${item.status?.toUpperCase() ?? 'UNKNOWN'} | Score: ${item.qualityScore}/100`);
     doc.text(`Date: ${new Date(item.timestamp).toLocaleString()}`);
     doc.moveDown();
     doc.fontSize(14).font('Helvetica-Bold').text('Goal');
@@ -40,25 +42,27 @@ router.get('/pdf/:id', (req, res) => {
     doc.end();
 });
 // ─── GET /agent/export/docx/:id ───────────────────────────────────────────────
-router.get('/docx/:id', async (req, res) => {
-    const item = (0, pipeline_1.getHistory)().find(x => x.id === req.params.id);
+router.get('/docx/:userId/:id', async (req, res) => {
+    const { userId } = req.params;
+    const history = await (0, pipeline_1.getHistory)(userId);
+    const item = history.find(x => x.id === req.params.id);
     if (!item) {
         res.status(404).json({ success: false, error: 'Execution record not found.' });
         return;
     }
     const children = [
         new docx_1.Paragraph({ text: 'Agentic AI Execution Report', heading: docx_1.HeadingLevel.TITLE }),
-        new docx_1.Paragraph({ children: [new docx_1.TextRun({ text: `ID: ${item.id}  |  Status: ${item.status.toUpperCase()}  |  Quality Score: ${item.qualityScore}/100`, bold: true })] }),
+        new docx_1.Paragraph({ children: [new docx_1.TextRun({ text: `ID: ${item._id}  |  Status: ${item.status?.toUpperCase() ?? 'UNKNOWN'}  |  Quality Score: ${item.qualityScore}/100`, bold: true })] }),
         new docx_1.Paragraph({ children: [new docx_1.TextRun({ text: `Date: ${new Date(item.timestamp).toLocaleString()}` })] }),
         new docx_1.Paragraph({}),
         new docx_1.Paragraph({ text: 'Goal', heading: docx_1.HeadingLevel.HEADING_1 }),
-        new docx_1.Paragraph({ text: item.goal }),
+        new docx_1.Paragraph({ text: item.goal || '' }),
         new docx_1.Paragraph({}),
         new docx_1.Paragraph({ text: 'Plan', heading: docx_1.HeadingLevel.HEADING_1 }),
-        new docx_1.Paragraph({ text: item.plan }),
+        new docx_1.Paragraph({ text: item.plan || '' }),
         new docx_1.Paragraph({}),
         new docx_1.Paragraph({ text: 'Execution Result', heading: docx_1.HeadingLevel.HEADING_1 }),
-        new docx_1.Paragraph({ text: item.refinedResult || item.executionResult }),
+        new docx_1.Paragraph({ text: (item.refinedResult || item.executionResult) || '' }),
     ];
     if (item.refinedPlan) {
         children.push(new docx_1.Paragraph({}));

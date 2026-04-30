@@ -12,10 +12,13 @@ const Dashboard = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const user = JSON.parse(localStorage.getItem('agentic-ai-user') || '{}');
+    const userId = user?.id;
+
     try {
       const [statusRes, historyRes] = await Promise.all([
-        fetch(`${API_BASE}/agent/status`),
-        fetch(`${API_BASE}/agent/history`),
+        fetch(`${API_BASE}/agent/status/${userId}`),
+        fetch(`${API_BASE}/agent/history/${userId}`),
       ]);
       const statusJson  = await statusRes.json();
       const historyJson = await historyRes.json();
@@ -91,6 +94,7 @@ const Dashboard = () => {
         </div>
       ) : stats ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {console.log(statCards)}
           {statCards.map((s, i) => (
             <div key={i} className="bg-dark-800 border border-dark-700 rounded-xl p-6">
               <div className="flex items-center justify-between">

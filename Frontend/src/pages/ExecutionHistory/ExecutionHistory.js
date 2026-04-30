@@ -177,7 +177,14 @@ const ExecutionHistory = () => {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/agent/history`);
+      const user = JSON.parse(localStorage.getItem('agentic-ai-user') || '{}');
+      const userId = user?.id;
+
+      if (!userId) {
+        throw new Error('User not logged in');
+      }
+
+      const res = await fetch(`${API_BASE}/agent/history/${userId}`); // ✅ FIX
       const json = await res.json();
 
       if (json.success) {

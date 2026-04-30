@@ -99,10 +99,13 @@ export const useWorkflowStore = create((set, get) => ({
       const keyMode = groqApiKey ? 'custom' : 'system';
       addLog(`🔑 Using ${keyMode} Groq API key`, 'info');
 
+      const user = JSON.parse(localStorage.getItem('agentic-ai-user') || '{}');
+      const userId = user?.id;
+
       const response = await fetch(`${API_BASE}/agent/goal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: goal.trim(), groqApiKey: groqApiKey || undefined }),
+        body: JSON.stringify({ goal: goal.trim(), groqApiKey: groqApiKey || undefined, userId }),
       });
 
       if (!response.ok) {
